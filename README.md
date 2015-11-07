@@ -1,3 +1,6 @@
+## FORenSIC Deliverables
+
+We have obtained a lot of evidences but we can't make sense of them. Can you help?
 ### Forensics 01
 ##### Check this file!!
 We managed to get a picture of the crime scene: [CTF.jpg](CTF.jpg)<br />
@@ -22,7 +25,7 @@ $ find /mnt/
 $ cat /mnt/key.doc
 Move along. Nothing to see here.
 $ umount /mnt/
-$ binwalk -e fs 
+$ binwalk -e fs
 DECIMAL       HEXADECIMAL     DESCRIPTION
 --------------------------------------------------------------------------------
 0             0x0             Linux EXT filesystem, rev 1.0 ext2 filesystem data, UUID=7e46643c-aae9-4323-bcb9-aa2f60566056
@@ -38,7 +41,7 @@ $ tar xvf ./_fs.extracted/7600
 look_inside.tbz
 $ file look_inside.tbz
 look_inside.tbz: gzip compressed data, from Unix, last modified: Sun Oct 18 13:35:53 2015
-$ tar xvf look_inside.tbz 
+$ tar xvf look_inside.tbz
 look_inside/
 look_inside/key.txt
 $ cat look_inside/key.txt
@@ -52,9 +55,9 @@ Flag is **RUX{dce3ae00-6ff9-4dc5-a8ca-ce717d247694}**
 What's wrong with this file?? [corrupted.data](corrupted.data)
 
 ```bash
-$ file corrupted.data 
+$ file corrupted.data
 corrupted.data: data
-$ strings corrupted.data 
+$ strings corrupted.data
 files/XX
 !SGl
 files/the_file
@@ -79,13 +82,13 @@ $ hexdump -C corrupted.data | head
 After searching for file headers and a few bytes from the header I came accross [this](http://www.garykessler.net/library/file_sigs.html) page documenting a few file headers.
 The header looks like zip file header except PK replaced with XX. If we replace XX with PK we find it's a valid zip file
 ```bash
-$ sed -i -e 's/XX/PK/g' corrupted.data 
-$ file corrupted.data 
+$ sed -i -e 's/XX/PK/g' corrupted.data
+$ file corrupted.data
 corrupted.data: Zip archive data, at least v2.0 to extract
 $ unzip corrupted.data
 Archive:  corrupted.data
    creating: files/
-  inflating: files/the_file          
+  inflating: files/the_file
 $ cat files/the_file
 the key is not RUZ{ecfb7b5b-719f-4523-a598-bd0957941099}
 the key is certainly not RUZ{ecfb7b5b-0000-4523-a598-bd0957941099}
@@ -109,3 +112,57 @@ RUX{SUPERHIDDENTOKEN}
 ---8<---
 ```
 Flag is **RUX{SUPERHIDDENTOKEN}**
+
+## Evil Maid Deliverables
+
+We have obtained software from a rival organization operator's laptop in their hotel room. We believe this software provides access to his stash of warez and communications with his handler
+
+These programs are being provided for your analysis.
+### Reversing 01
+The administrator has a password protected second factor token program on this server. Compromise it to get today's token! [reversing_level1.exe](reversing_level1.exe)
+
+The program is .NET binary. It's not packed but all of the variable names are really long which is annoying. ILSpy and Reflector were showing either garbled or not variable names. I ended up using dnSpy which handled the long variable names correctly.
+
+The program takes a username and password then computes their SHA256 hash then compares with a known good username and password.
+```csharp
+  public bool check_credentials()
+  {
+    SHA256CryptoServiceProvider sha256Provider = new SHA256CryptoServiceProvider();
+    byte[] first = sha256Provider.ComputeHash(Encoding.UTF8.GetBytes(this.inputted_password));
+    byte[] first2 = sha256Provider.ComputeHash(Encoding.UTF8.GetBytes(this.inputted_username));
+    if (first.SequenceEqual(this.good_password))
+    {
+      while (true)
+      {
+        switch ((-1933974480 ^ -225751156) % 3)
+        {
+        case 0:
+          continue;
+        case 1:
+          goto IL_62;
+        }
+        break;
+      }
+      return false;
+      IL_62:
+      return first2.SequenceEqual(this.good_username);
+    }
+    return false;
+  }
+  private byte[] good_password = new byte[]
+  {
+    244, 20, 98, 238, 127, 150, 197, 46, 34, 198, 244, 126, 254, 179, 157, 35, 55, 25, 161, 51, 83, 205, 215, 4, 65, 201, 220, 71, 153, 249, 131, 243
+  };
+  private byte[] good_username = new byte[]
+  {
+    253, 52, 205, 178, 94, 70, 227, 51, 80, 138, 75, 139, 171, 14, 226, 170, 229, 63, 25, 67, 52, 154, 206, 112, 85, 221, 47, 101, 238, 203, 164, 81
+  };
+
+```
+If you convert the byte array to hex it'll be:<br />
+Username: fd34cdb25e46e333508a4b8bab0ee2aae53f1943349ace7055dd2f65eecba451<br />
+Password: f41462ee7f96c52e22c6f47efeb39d233719a13353cdd70441c9dc4799f983f3<br />
+If you search google for those two hashes you'll find the valid username and passowrd is kdz and ruxxandrra62bb.
+
+**Flag is RUX{ruxxandrra62bb}**
+
